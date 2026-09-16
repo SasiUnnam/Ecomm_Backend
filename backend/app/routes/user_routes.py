@@ -6,7 +6,6 @@ from app.controllers.user_controller import create_user as create_user_controlle
 from app.controllers.user_controller import get_user as get_user_controller
 from app.controllers.user_controller import get_users as get_users_controller
 from app.controllers.user_controller import update_user as update_user_controller
-from app.controllers.user_controller import upload_user_profile_image as upload_user_profile_image_controller
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.utils.identifiers import parse_user_id
 
@@ -44,10 +43,11 @@ async def upload_user_profile_image(
     db: Session = Depends(get_db),
 ) -> UserResponse:
     file_bytes = await file.read()
-    return upload_user_profile_image_controller(
+    return update_user_controller(
         parse_user_id(user_id),
-        file_bytes,
-        file.filename,
-        file.content_type,
+        UserUpdate(),
         db,
+        image_data=file_bytes,
+        file_name=file.filename,
+        content_type=file.content_type,
     )

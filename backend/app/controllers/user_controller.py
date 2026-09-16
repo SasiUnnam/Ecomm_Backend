@@ -43,7 +43,14 @@ def create_user(user_data: UserCreate, db: Session) -> UserResponse:
     return user
 
 
-def update_user(user_id: UUID, user_data: UserUpdate, db: Session) -> UserResponse:
+def update_user(
+    user_id: UUID,
+    user_data: UserUpdate,
+    db: Session,
+    image_data: bytes | None = None,
+    file_name: str | None = None,
+    content_type: str | None = None,
+) -> UserResponse:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -63,22 +70,17 @@ def update_user(user_id: UUID, user_data: UserUpdate, db: Session) -> UserRespon
     if password is not None:
         user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-    profile_image_data = updates.pop("profile_image_data", None)
-    profile_image_name = updates.pop("profile_image_name", None)
-    profile_image_content_type = updates.pop("profile_image_content_type", None)
-
-    if profile_image_data:
+    if image_data is not None:
         previous_profile_pic_url = user.profile_pic_url
-        uploaded_url = upload_profile_image(
+        image_url = upload_profile_image(
             user_id=user_id,
-            image_data=profile_image_data,
-            file_name=profile_image_name,
-            content_type=profile_image_content_type,
+            image_data=image_data,
+            file_name=file_name,
+            content_type=content_type,
         )
-        user.profile_pic_url = uploaded_url
-        if previous_profile_pic_url and previous_profile_pic_url != uploaded_url:
+        user.profile_pic_url = image_url
+        if previous_profile_pic_url and previous_profile_pic_url != image_url:
             delete_file(previous_profile_pic_url)
-        updates.pop("profile_pic_url", None)
 
     for field, value in updates.items():
         setattr(user, field, value)
@@ -88,27 +90,3 @@ def update_user(user_id: UUID, user_data: UserUpdate, db: Session) -> UserRespon
     return user
 
 
-def upload_user_profile_image(
-    user_id: UUID,
-    image_data: bytes,
-    file_name: str | None,
-    content_type: str | None,
-    db: Session,
-) -> UserResponse:
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    previous_profile_pic_url = user.profile_pic_url
-    image_url = upload_profile_image(
-        user_id=user_id,
-        image_data=image_data,
-        file_name=file_name,
-        content_type=content_type,
-    )
-    user.profile_pic_url = image_url
-    if previous_profile_pic_url and previous_profile_pic_url != image_url:
-        delete_file(previous_profile_pic_url)
-    db.commit()
-    db.refresh(user)
-    return user

@@ -31,12 +31,6 @@ class SignupOTPVerify(BaseModel):
     otp: str
 
 
-class ProfileImageUpload(BaseModel):
-    image_data: str
-    file_name: str | None = None
-    content_type: str | None = None
-
-
 class UserUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
@@ -44,10 +38,6 @@ class UserUpdate(BaseModel):
     password: str | None = None
     role: RoleName | None = None
     phone: str | None = None
-    profile_pic_url: str | None = None
-    profile_image_data: str | None = None
-    profile_image_name: str | None = None
-    profile_image_content_type: str | None = None
     is_active: bool | None = None
     email_verified: bool | None = None
 
