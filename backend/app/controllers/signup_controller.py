@@ -6,6 +6,7 @@ from fastapi_mail import FastMail, MessageSchema, MessageType
 from sqlalchemy.orm import Session
 
 from app.configs.mail import mail_config
+from app.models.role import RoleName
 from app.models.user import User
 from app.schemas.user import SignupOTPRequest, SignupOTPVerify, UserResponse
 from app.utils.otp import generate_otp
@@ -51,7 +52,7 @@ async def verify_signup_otp(data: SignupOTPVerify, db: Session) -> UserResponse:
         _pending_otps.pop(email, None)
         raise HTTPException(status_code=409, detail="A user with this email already exists")
 
-    user = User(email=email, email_verified=True, is_active=True)
+    user = User(email=email, role=RoleName.USER, email_verified=True, is_active=True)
     db.add(user)
     db.commit()
     db.refresh(user)
