@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from app.configs.database import Base
 from app.configs.settings import settings
 from app.models.user import User
+from app.models.role import Role
 from app.models.product import Product
 from app.models.category import Category
 from app.models.cart import Cart
