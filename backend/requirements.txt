@@ -1,3 +1,7 @@
 python-jose[cryptography]
 boto3
 python-multipart
+httpx>=0.28.0
+anyio>=4.0.0
+pytest
+pytest-asyncio

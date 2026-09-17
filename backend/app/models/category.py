@@ -1,15 +1,6 @@
 import uuid
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    String,
-    Text,
-    Uuid,
-    func,
-)
+from sqlalchemy import Boolean, Column, DateTime, String, Text, Uuid, func
 from sqlalchemy.orm import relationship
 
 from app.configs.database import Base
@@ -27,11 +18,6 @@ class Category(Base):
     name = Column(String(150), nullable=False)
     slug = Column(String(180), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
-    parent_id = Column(
-        Uuid(as_uuid=True),
-        ForeignKey("categories.id", ondelete="SET NULL"),
-        nullable=True,
-    )
     image_url = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(
@@ -46,16 +32,6 @@ class Category(Base):
         nullable=False,
     )
 
-    parent = relationship(
-        "Category",
-        remote_side=[id],
-        back_populates="children",
-    )
-    children = relationship(
-        "Category",
-        back_populates="parent",
-        cascade="all, delete-orphan",
-    )
     subcategories = relationship(
         "SubCategory",
         back_populates="category",
