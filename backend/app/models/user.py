@@ -1,5 +1,5 @@
-from datetime import datetime
 import uuid
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, Column, DateTime, Enum as SqlEnum, String, Uuid
 
@@ -21,5 +21,10 @@ class User(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     email_verified = Column(Boolean, nullable=False, default=False)
     last_login_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )

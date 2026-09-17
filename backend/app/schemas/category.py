@@ -10,7 +10,6 @@ class CategoryBase(BaseModel):
     name: str = Field(..., max_length=150)
     slug: str = Field(..., max_length=180)
     description: str | None = None
-    parent_id: UUID | None = None
     image_url: str | None = None
     is_active: bool = True
 
@@ -23,7 +22,6 @@ class CategoryUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=150)
     slug: str | None = Field(default=None, max_length=180)
     description: str | None = None
-    parent_id: UUID | None = None
     image_url: str | None = None
     is_active: bool | None = None
 
