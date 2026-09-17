@@ -8,6 +8,7 @@ from app.configs.settings import settings
 from app.models.user import User
 from app.models.role import Role
 from app.models.product import Product
+from app.models.sub_category import SubCategory
 from app.models.category import Category
 from app.models.cart import Cart
 from app.models.order import Order

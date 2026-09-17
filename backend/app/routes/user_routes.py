@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from app.configs.database import get_db
 from app.controllers.user_controller import create_user as create_user_controller
@@ -28,12 +30,48 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)) -> UserRes
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
-def update_user(
+async def update_user(
     user_id: str,
-    user_data: UserUpdate,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> UserResponse:
-    return update_user_controller(parse_user_id(user_id), user_data, db)
+    content_type = request.headers.get("content-type", "")
+    image_data = None
+    file_name = None
+    image_content_type = None
+
+    try:
+        if content_type.startswith("multipart/form-data"):
+            form = await request.form()
+            form_data = {
+                key: value
+                for key, value in form.items()
+                if not isinstance(value, StarletteUploadFile)
+            }
+            user_data = UserUpdate.model_validate(form_data)
+            image_file = form.get("file")
+            if isinstance(image_file, StarletteUploadFile):
+                image_data = await image_file.read()
+                file_name = image_file.filename
+                image_content_type = image_file.content_type
+        elif content_type.startswith("application/json"):
+            user_data = UserUpdate.model_validate(await request.json())
+        else:
+            raise HTTPException(
+                status_code=415,
+                detail="Use application/json or multipart/form-data",
+            )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    return update_user_controller(
+        parse_user_id(user_id),
+        user_data,
+        db,
+        image_data=image_data,
+        file_name=file_name,
+        content_type=image_content_type,
+    )
 
 
 @router.post("/{user_id}/profile-image", response_model=UserResponse)
