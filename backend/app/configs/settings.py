@@ -1,45 +1,69 @@
-import os
+import json
 from pathlib import Path
 
-from dotenv import load_dotenv
-from pydantic import SecretStr
-
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+from pydantic import AliasChoices, Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings:
+class Settings(BaseSettings):
     database_url: str
-    database_ssl_require: bool
+    database_ssl_require: bool = False
+
     secret_key: str
-    algorithm: str
-    access_token_expire_minutes: int
-    refresh_token_expire_days: int
-    smtp_host: str
-    smtp_port: int
+    algorithm: str = "HS256"
+
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
     smtp_user: str
     smtp_password: SecretStr
-    spaces_access_key: str
-    spaces_secret_key: str
-    spaces_region: str
-    spaces_bucket: str
-    spaces_endpoint: str
 
-    def __init__(self) -> None:
-        self.database_url = os.environ["DATABASE_URL"]
-        self.database_ssl_require = os.getenv("DATABASE_SSL_REQUIRE", "false").lower() == "true"
-        self.secret_key = os.environ["SECRET_KEY"]
-        self.algorithm = os.getenv("ALGORITHM", "HS256")
-        self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-        self.refresh_token_expire_days = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
-        self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = os.environ["SMTP_USER"]
-        self.smtp_password = SecretStr(os.environ["SMTP_PASSWORD"])
-        self.spaces_access_key = os.getenv("SPACES_ACCESS_KEY", "")
-        self.spaces_secret_key = os.getenv("SPACES_SECRET_KEY", "")
-        self.spaces_region = os.getenv("SPACES_REGION", "nyc3")
-        self.spaces_bucket = os.getenv("SPACES_BUCKET", "")
-        self.spaces_endpoint = os.getenv("SPACES_ENDPOINT", f"https://{self.spaces_region}.digitaloceanspaces.com")
+    allowed_origins: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("ALLOWED_ORIGINS", "allowed_origins"),
+    )
+
+    spaces_access_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("SPACES_ACCESS_KEY", "DO_SPACES_KEY", "AWS_ACCESS_KEY_ID"),
+    )
+    spaces_secret_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("SPACES_SECRET_KEY", "DO_SPACES_SECRET", "AWS_SECRET_ACCESS_KEY"),
+    )
+    spaces_region: str = Field(
+        default="nyc3",
+        validation_alias=AliasChoices("SPACES_REGION", "DO_SPACES_REGION", "AWS_REGION"),
+    )
+    spaces_bucket: str = Field(
+        default="",
+        validation_alias=AliasChoices("SPACES_BUCKET", "DO_SPACES_BUCKET", "AWS_S3_BUCKET"),
+    )
+    spaces_endpoint: str = Field(
+        default="",
+        validation_alias=AliasChoices("SPACES_ENDPOINT", "DO_SPACES_ENDPOINT"),
+    )
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return []
+            if value.startswith("["):
+                return json.loads(value)
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
+
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
 
 
 settings = Settings()

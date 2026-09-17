@@ -1,7 +1,10 @@
 # Frontend API Quick Reference
 
 Base URL: `http://localhost:8000`  
-Swagger: `http://localhost:8000/docs`
+Swagger UI: `http://localhost:8000/docs`  
+OpenAPI JSON: `http://localhost:8000/openapi.json`
+
+The backend allows browser requests from `http://localhost:3000` and `http://127.0.0.1:3000`, configured through `ALLOWED_ORIGINS` in `.env`. Use `http://` or `https://` in the frontend API URL; `localhost:8000` without a scheme causes a network URL-scheme error.
 
 ## Signup Flow
 
@@ -24,6 +27,16 @@ OTP verification creates a minimal user with `email`, `role: "user"`, `is_active
 | `PATCH` | `/users/{user_id}` | Update user fields |
 | `POST` | `/users/{user_id}/profile-image` | Upload one profile image |
 
+## FastAPI Requests
+
+JSON requests must include:
+
+```http
+Content-Type: application/json
+```
+
+FastAPI validates request bodies using the Pydantic schemas. Invalid requests return `422 Unprocessable Entity`.
+
 ## Request Examples
 
 ### Request OTP
@@ -35,6 +48,14 @@ Content-Type: application/json
 
 ```json
 {"email":"user@example.com"}
+```
+
+Equivalent `curl` request:
+
+```bash
+curl -X POST http://localhost:8000/auth/signup/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com"}'
 ```
 
 Response: `202 {"message":"Verification code sent"}`
@@ -56,7 +77,7 @@ Response: `201` with the created user.
 
 ```http
 PATCH /users/TN<uuid>
-Content-Type: application/json
+Content-Type: application/json or multipart/form-data
 ```
 
 ```json
@@ -64,6 +85,22 @@ Content-Type: application/json
 ```
 
 Only supplied fields are updated.
+
+To update fields and upload an image in the same request, use `multipart/form-data`:
+
+```javascript
+const formData = new FormData();
+formData.append("first_name", "Alex");
+formData.append("phone", "+1-555-0100");
+formData.append("file", selectedFile);
+
+await fetch(`${API_BASE_URL}/users/${userId}`, {
+  method: "PATCH",
+  body: formData,
+});
+```
+
+The `file` field is optional. JSON requests can still update fields without an image.
 
 ### Upload Profile Image
 
@@ -85,6 +122,13 @@ await fetch(`${API_BASE_URL}/users/${userId}/profile-image`, {
 ```
 
 Do not set `Content-Type` manually when using `FormData`.
+
+Equivalent `curl` request:
+
+```bash
+curl -X POST http://localhost:8000/users/TN<uuid>/profile-image \
+  -F "file=@/path/to/profile.png"
+```
 
 ## User Response
 
@@ -114,5 +158,19 @@ Do not set `Content-Type` manually when using `FormData`.
 - Profile images use one multipart file named `file`.
 - Profile images currently have a 5 MB limit.
 - Do not send `profile_pic_url`; the backend sets it after upload.
-- Common errors: `400` validation, `404` not found, `409` duplicate, `413` file too large, `422` invalid input.
+- FastAPI validation error format:
+
+  ```json
+  {
+    "detail": [
+      {
+        "loc": ["body", "email"],
+        "msg": "value is not a valid email address",
+        "type": "value_error"
+      }
+    ]
+  }
+  ```
+
+- Common errors: `400` business validation, `404` not found, `409` duplicate, `413` file too large, `422` invalid input.
 - JWT route authentication is not connected yet.
