@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -10,6 +11,8 @@ from app.models.role import RoleName
 from app.models.user import User
 from app.schemas.user import SignupOTPRequest, SignupOTPVerify, UserResponse
 from app.utils.otp import generate_otp
+
+logger = logging.getLogger(__name__)
 
 OTP_EXPIRY_MINUTES = 10
 _pending_otps: dict[str, tuple[str, datetime]] = {}
@@ -35,6 +38,7 @@ async def request_signup_otp(data: SignupOTPRequest, db: Session) -> None:
     try:
         await FastMail(mail_config).send_message(message)
     except Exception as exc:
+        logger.exception("Failed to send OTP email to %s", email)
         _pending_otps.pop(email, None)
         raise HTTPException(
             status_code=503,

@@ -21,3 +21,14 @@ def test_settings_accepts_legacy_space_env_names(monkeypatch):
     assert settings.spaces_region == "nyc3"
     assert settings.spaces_bucket == "legacy-bucket"
     assert settings.spaces_endpoint == "https://nyc3.digitaloceanspaces.com"
+
+
+def test_settings_include_localhost_dev_origins(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/ecomm_db")
+    monkeypatch.setenv("SECRET_KEY", "test-secret-key")
+
+    settings = Settings(_env_file=None)
+
+    assert "http://localhost:3000" in settings.allowed_origins
+    assert "http://localhost:5173" in settings.allowed_origins
+    assert "http://127.0.0.1:5173" in settings.allowed_origins

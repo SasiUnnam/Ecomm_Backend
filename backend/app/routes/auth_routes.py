@@ -8,7 +8,15 @@ from app.schemas.user import SignupOTPRequest, SignupOTPVerify, UserResponse
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/signup/request-otp", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/signup/request-otp",
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Email service unavailable or SMTP credentials invalid"
+        }
+    },
+)
 async def request_signup_code(
     data: SignupOTPRequest,
     db: Session = Depends(get_db),
