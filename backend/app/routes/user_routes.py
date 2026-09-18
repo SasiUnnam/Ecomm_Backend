@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
-from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from app.configs.database import get_db
 from app.controllers.user_controller import create_user as create_user_controller
@@ -32,44 +31,47 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)) -> UserRes
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: str,
-    request: Request,
+    user_data: UserUpdate,
     db: Session = Depends(get_db),
 ) -> UserResponse:
-    content_type = request.headers.get("content-type", "")
-    image_data = None
-    file_name = None
-    image_content_type = None
-
-    try:
-        if content_type.startswith("multipart/form-data"):
-            form = await request.form()
-            form_data = {
-                key: value
-                for key, value in form.items()
-                if not isinstance(value, StarletteUploadFile)
-            }
-            user_data = UserUpdate.model_validate(form_data)
-            image_file = form.get("file")
-            if isinstance(image_file, StarletteUploadFile):
-                image_data = await image_file.read()
-                file_name = image_file.filename
-                image_content_type = image_file.content_type
-        elif content_type.startswith("application/json"):
-            user_data = UserUpdate.model_validate(await request.json())
-        else:
-            raise HTTPException(
-                status_code=415,
-                detail="Use application/json or multipart/form-data",
-            )
-    except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=exc.errors()) from exc
-
     return update_user_controller(
         parse_user_id(user_id),
         user_data,
         db,
+    )
+
+
+@router.patch("/{user_id}/form", response_model=UserResponse)
+async def update_user_form(
+    user_id: str,
+    first_name: str | None = Form(default=None),
+    last_name: str | None = Form(default=None),
+    email: str | None = Form(default=None),
+    phone: str | None = Form(default=None),
+    is_active: bool | None = Form(default=None),
+    email_verified: bool | None = Form(default=None),
+    file: UploadFile | None = File(default=None),
+    db: Session = Depends(get_db),
+) -> UserResponse:
+    payload = UserUpdate(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone=phone,
+        is_active=is_active,
+        email_verified=email_verified,
+    )
+
+    image_data = await file.read() if file is not None else None
+    image_file_name = file.filename if file is not None else None
+    image_content_type = file.content_type if file is not None else None
+
+    return update_user_controller(
+        parse_user_id(user_id),
+        payload,
+        db,
         image_data=image_data,
-        file_name=file_name,
+        file_name=image_file_name,
         content_type=image_content_type,
     )
 

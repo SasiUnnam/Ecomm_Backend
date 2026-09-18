@@ -15,10 +15,26 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
-    smtp_host: str = "smtp.gmail.com"
-    smtp_port: int = 587
-    smtp_user: str
-    smtp_password: SecretStr
+    smtp_host: str = Field(
+        default="smtp-relay.brevo.com",
+        validation_alias=AliasChoices("SMTP_HOST", "smtp_host"),
+    )
+    smtp_port: int = Field(
+        default=587,
+        validation_alias=AliasChoices("SMTP_PORT", "smtp_port"),
+    )
+    smtp_user: str = Field(
+        default="",
+        validation_alias=AliasChoices("SMTP_USER", "smtp_user"),
+    )
+    smtp_password: SecretStr = Field(
+        default="",
+        validation_alias=AliasChoices("SMTP_PASSWORD", "smtp_password"),
+    )
+    smtp_from: str = Field(
+        default="",
+        validation_alias=AliasChoices("SMTP_FROM", "smtp_from", "MAIL_FROM"),
+    )
 
     allowed_origins: list[str] = Field(
         default_factory=list,

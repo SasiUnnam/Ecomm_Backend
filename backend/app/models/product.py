@@ -8,6 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.configs.database import Base
 
+# Import the cart item model so the relationship can resolve during mapper setup.
+from app.models.cart import CartItem  # noqa: F401
+
 
 class Product(Base):
     __tablename__ = "products"
@@ -48,3 +51,4 @@ class Product(Base):
 
     category = relationship("Category", back_populates="products")
     sub_category = relationship("SubCategory", back_populates="products")
+    cart_items = relationship("CartItem", back_populates="product")

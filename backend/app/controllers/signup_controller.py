@@ -31,7 +31,15 @@ async def request_signup_otp(data: SignupOTPRequest, db: Session) -> None:
         body=f"Your verification code is {otp}. It expires in {OTP_EXPIRY_MINUTES} minutes.",
         subtype=MessageType.plain,
     )
-    await FastMail(mail_config).send_message(message)
+
+    try:
+        await FastMail(mail_config).send_message(message)
+    except Exception as exc:
+        _pending_otps.pop(email, None)
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to send verification email. Please try again later.",
+        ) from exc
 
 
 async def verify_signup_otp(data: SignupOTPVerify, db: Session) -> UserResponse:

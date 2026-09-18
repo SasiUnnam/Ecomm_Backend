@@ -2,9 +2,13 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, Column, DateTime, Enum as SqlEnum, String, Uuid
+from sqlalchemy.orm import relationship
 
 from app.configs.database import Base
 from app.models.role import RoleName
+
+# Import the cart model so the string-based relationship can resolve during mapper setup.
+from app.models.cart import Cart  # noqa: F401
 
 
 class User(Base):
@@ -28,3 +32,5 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    cart = relationship("Cart", back_populates="user", uselist=False, cascade="all, delete-orphan")
