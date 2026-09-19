@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str
-    database_ssl_require: bool = False
+    database_ssl_require: bool | None = None
 
     secret_key: str
     algorithm: str = "HS256"
