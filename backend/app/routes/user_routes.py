@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
@@ -28,12 +28,44 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)) -> UserRes
     return create_user_controller(user_data, db)
 
 
+async def parse_user_update_payload(request: Request) -> UserUpdate:
+    content_type = request.headers.get("content-type", "")
+
+    if "application/json" in content_type:
+        try:
+            payload = await request.json()
+        except ValueError:
+            payload = {}
+        return UserUpdate(**(payload or {}))
+
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form_data = await request.form()
+        payload = {
+            "first_name": form_data.get("first_name"),
+            "last_name": form_data.get("last_name"),
+            "email": form_data.get("email"),
+            "password": form_data.get("password"),
+            "role": form_data.get("role"),
+            "phone": form_data.get("phone"),
+        }
+
+        for key in ("is_active", "email_verified"):
+            raw_value = form_data.get(key)
+            if raw_value is not None:
+                payload[key] = str(raw_value).lower() in {"true", "1", "yes", "on"}
+
+        return UserUpdate(**{k: v for k, v in payload.items() if v is not None})
+
+    return UserUpdate()
+
+
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: str,
-    user_data: UserUpdate,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> UserResponse:
+    user_data = await parse_user_update_payload(request)
     return update_user_controller(
         parse_user_id(user_id),
         user_data,

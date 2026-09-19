@@ -1,11 +1,16 @@
 fastapi
 uvicorn
+gunicorn
 sqlalchemy
 psycopg2-binary
 python-jose[cryptography]
 boto3
 python-multipart
+pydantic-settings
+fastapi-mail
+email-validator
 httpx>=0.28.0
 anyio>=4.0.0
 pytest
 pytest-asyncio
+bcrypt
